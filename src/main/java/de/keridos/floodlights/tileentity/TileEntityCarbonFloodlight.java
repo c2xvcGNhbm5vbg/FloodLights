@@ -70,7 +70,11 @@ public class TileEntityCarbonFloodlight extends TileEntityMetaFloodlight {
         World world = this.getWorldObj();
         if (!world.isRemote) {
             if (timeRemaining == 0 && inventory[0] != null) {
-                timeRemaining = ConfigHandler.carbonTime * getBurnTime(inventory[0]) / 1600 * (mode == 0 ? 20 : 10);
+                // Compute in long to avoid int overflow for fuels with huge burn times
+                // (e.g. GT fuels), which used to wrap negative and brick the light.
+                timeRemaining = (int) Math.min(
+                        Integer.MAX_VALUE,
+                        (long) ConfigHandler.carbonTime * getBurnTime(inventory[0]) / 1600 * (mode == 0 ? 20 : 10));
                 decrStackSize(0, 1);
             }
             if (timeout > 0) {
@@ -151,7 +155,7 @@ public class TileEntityCarbonFloodlight extends TileEntityMetaFloodlight {
             if (mode == 1) {
                 timeRemaining /= 4;
             } else if (mode == 0) {
-                timeRemaining *= 4;
+                timeRemaining = (int) Math.min(Integer.MAX_VALUE, (long) timeRemaining * 4);
             }
             if (active && timeRemaining > 0) {
                 addSource(this.mode);
